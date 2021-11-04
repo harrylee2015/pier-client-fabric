@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/cloudflare/cfssl/log"
-	"github.com/meshplus/bitxhub-model/pb"
+	"gitlab.33.cn/link33/sidecar/model/pb"
 )
 
 type Event struct {
@@ -27,9 +27,10 @@ func (ev *Event) Convert2IBTP(timeoutHeight int64, ibtpType pb.IBTP_Type) *pb.IB
 	return &pb.IBTP{
 		From:          ev.SrcFullID,
 		To:            ev.DstFullID,
-		Index:         ev.Index,
+		Nonce:         ev.Index,
 		Type:          ibtpType,
-		TimeoutHeight: timeoutHeight,
+		//FIXME 这个版本暂时没有设置超时时间
+		//TimeoutHeight: timeoutHeight,
 		Payload:       pd,
 	}
 }

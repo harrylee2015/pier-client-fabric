@@ -3,6 +3,6 @@ set -e
 
 APPCHAIN_NAME=$1
 
-pier --repo=/root/.pier appchain register --name=${APPCHAIN_NAME} --type=fabric --validators=/root/.pier/fabric/fabric.validators --desc="appchain for test" --version=1.4.3
-pier --repo=/root/.pier rule deploy --path=/root/.pier/validating.wasm
-pier --repo=/root/.pier start
+sidecar --repo=/root/.sidecar appchain register --name=${APPCHAIN_NAME} --type=fabric --validators=/root/.sidecar/fabric/fabric.validators --desc="appchain for test" --version=1.4.3
+sidecar --repo=/root/.sidecar rule deploy --path=/root/.sidecar/validating.wasm
+sidecar --repo=/root/.sidecar start

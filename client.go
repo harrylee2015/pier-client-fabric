@@ -20,8 +20,8 @@ import (
 	"github.com/hyperledger/fabric-sdk-go/pkg/client/ledger"
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/providers/fab"
 	"github.com/hyperledger/fabric/common/util"
-	"github.com/meshplus/bitxhub-model/pb"
-	"github.com/meshplus/pier/pkg/plugins"
+	"gitlab.33.cn/link33/sidecar/model/pb"
+	"gitlab.33.cn/link33/sidecar/pkg/plugins"
 )
 
 var (
@@ -73,7 +73,15 @@ type CallFunc struct {
 	Func string   `json:"func"`
 	Args [][]byte `json:"args"`
 }
+func (c *Client) Kill() {
+}
 
+func (c *Client) Exited() bool {
+	return true
+}
+
+func (c *Client) Bind(kern plugins.Kernel) {
+}
 func (c *Client) Initialize(configPath, appchainID string, extra []byte) error {
 	eventC := make(chan *pb.IBTP)
 	config, err := UnmarshalConfig(configPath)
@@ -151,7 +159,7 @@ func (c *Client) polling() {
 						ID:                      srcChainServiceID,
 						InterchainCounter:       make(map[string]uint64),
 						ReceiptCounter:          make(map[string]uint64),
-						SourceInterchainCounter: make(map[string]uint64),
+						//SourceInterchainCounter: make(map[string]uint64),
 						SourceReceiptCounter:    make(map[string]uint64),
 					}
 					c.serviceMeta[srcChainServiceID] = meta
@@ -232,6 +240,23 @@ func (c *Client) Name() string {
 func (c *Client) Type() string {
 	return FabricType
 }
+//TODO ID等同于链ID
+func (c *Client) ID() string {
+	request := channel.Request{
+		ChaincodeID: c.meta.CCID,
+		Fcn:         GetChainId,
+	}
+
+	response, err := c.consumer.ChannelClient.Execute(request)
+	if err != nil || response.Payload == nil {
+		return ""
+	}
+	chainIds := strings.Split(string(response.Payload), "-")
+	if len(chainIds) != 2 {
+		return ""
+	}
+	return fmt.Sprintf("%s:%s", chainIds[0], chainIds[1])
+}
 
 func (c *Client) GetIBTP() chan *pb.IBTP {
 	return c.eventC
@@ -269,7 +294,7 @@ func (c *Client) SubmitIBTP(ibtp *pb.IBTP) (*pb.SubmitIBTPResponse, error) {
 
 	if ibtp.Category() == pb.IBTP_RESPONSE && content.Func == "" || ibtp.Type == pb.IBTP_ROLLBACK {
 		logger.Info("InvokeIndexUpdate", "ibtp", ibtp.ID())
-		_, resp, err := c.InvokeIndexUpdate(srcChainServiceID, ibtp.Index, serviceID, ibtp.Category())
+		_, resp, err := c.InvokeIndexUpdate(srcChainServiceID, ibtp.Nonce, serviceID, ibtp.Category())
 		if err != nil {
 			return nil, err
 		}
@@ -296,13 +321,13 @@ func (c *Client) SubmitIBTP(ibtp *pb.IBTP) (*pb.SubmitIBTPResponse, error) {
 		ret.Status = false
 		ret.Message = fmt.Sprintf("marshal ibtp %s func %s and args: %s", ibtp.ID(), callFunc.Func, err.Error())
 
-		res, _, err := c.InvokeIndexUpdate(srcChainServiceID, ibtp.Index, serviceID, ibtp.Category())
+		res, _, err := c.InvokeIndexUpdate(srcChainServiceID, ibtp.Nonce, serviceID, ibtp.Category())
 		if err != nil {
 			return nil, err
 		}
 		chResp = res
 	} else {
-		res, resp, err := c.InvokeInterchain(srcChainServiceID, ibtp.Index, serviceID, uint64(ibtp.Category()), bizData)
+		res, resp, err := c.InvokeInterchain(srcChainServiceID, ibtp.Nonce, serviceID, uint64(ibtp.Category()), bizData)
 		if err != nil {
 			return nil, fmt.Errorf("invoke interchain for ibtp %s to call %s: %w", ibtp.ID(), content.Func, err)
 		}
@@ -525,7 +550,7 @@ func (c *Client) RollbackIBTP(ibtp *pb.IBTP, isSrcChain bool) (*pb.RollbackIBTPR
 	}
 
 	// pb.IBTP_RESPONSE indicates it is to update callback counter
-	_, resp, err := c.InvokeInterchain(srcChainServiceID, ibtp.Index, serviceID, reqType, bizData)
+	_, resp, err := c.InvokeInterchain(srcChainServiceID, ibtp.Nonce, serviceID, reqType, bizData)
 	if err != nil {
 		return nil, fmt.Errorf("invoke interchain for ibtp %s to call %s: %w", ibtp.ID(), content.Rollback, err)
 	}
@@ -545,7 +570,7 @@ func (c *Client) IncreaseInMeta(original *pb.IBTP) (*pb.IBTP, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, _, err = c.InvokeIndexUpdate(original.From, original.Index, serviceID, original.Category())
+	_, _, err = c.InvokeIndexUpdate(original.From, original.Nonce, serviceID, original.Category())
 	if err != nil {
 		logger.Error("update in meta", "ibtp_id", original.ID(), "error", err.Error())
 	}
@@ -553,7 +578,8 @@ func (c *Client) IncreaseInMeta(original *pb.IBTP) (*pb.IBTP, error) {
 }
 
 func (c *Client) GetReceipt(ibtp *pb.IBTP) (*pb.IBTP, error) {
-	result, err := c.GetInMessage(ibtp.ServicePair(), ibtp.Index)
+	//TODO 这里有问题Pair := fmt.Sprintf("%s-%s-%d", m.From, m.To, m.Nonce)
+	result, err := c.GetInMessage(genServicePair(ibtp.From,ibtp.To), ibtp.Nonce)
 	if err != nil {
 		return nil, err
 	}

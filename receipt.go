@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/meshplus/bitxhub-model/pb"
+	"gitlab.33.cn/link33/sidecar/model/pb"
 )
 
 func (c *Client) generateCallback(original *pb.IBTP, args [][]byte, status bool) (result *pb.IBTP, err error) {
@@ -52,7 +52,7 @@ func (c *Client) generateCallback(original *pb.IBTP, args [][]byte, status bool)
 	return &pb.IBTP{
 		From:    original.From,
 		To:      original.To,
-		Index:   original.Index,
+		Nonce:   original.Nonce,
 		Type:    typ,
 		Proof:   original.Proof,
 		Payload: pdb,

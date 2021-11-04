@@ -1,6 +1,6 @@
-# Pier Client Fabric
+# Sidecar Client Fabric
 
-Pier-client-fabric is the plugin implementation for fabric blockchain.
+Sidecar-client-fabric is the plugin implementation for fabric blockchain.
 
 ## How to build
 
@@ -11,7 +11,7 @@ make fabric1.4
 ```
 
 This will create a `build` directory under the project path and generate a `fabric-client-1.4.so` inside the `build`.
-This `.so` file will be used by [Pier](https://github.com/meshplus/pier).
+This `.so` file will be used by [Sidecar](https://gitlab.33.cn/link33/sidecar).
 
 ## Usage
 
