@@ -1,4 +1,4 @@
-module github.com/meshplus/transfer
+module gitlab.33cn/link33/sidecar-client-fabric/example/contracts/src/transfer
 
 go 1.13
 

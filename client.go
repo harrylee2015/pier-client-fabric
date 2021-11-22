@@ -359,7 +359,7 @@ func (c *Client) SubmitIBTP(ibtp *pb.IBTP) (*pb.SubmitIBTPResponse, error) {
 
 	return ret, nil
 }
-
+//跨链方法调用
 func (c *Client) InvokeInterchain(from string, index uint64, destAddr string, reqType uint64, bizCallData []byte) (*channel.Response, *Response, error) {
 	args := util.ToChaincodeArgs(from, strconv.FormatUint(index, 10), destAddr, strconv.FormatUint(reqType, 10))
 	args = append(args, bizCallData)

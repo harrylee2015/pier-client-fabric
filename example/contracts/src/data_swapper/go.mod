@@ -1,4 +1,4 @@
-module github.com/meshplus/data_swapper
+module gitlab.33cn/link33/sidecar-client-fabric/example/contracts/src/data_swapper
 
 go 1.13
 

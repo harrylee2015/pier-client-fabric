@@ -16,7 +16,7 @@ require (
 	github.com/hyperledger/fabric-protos-go v0.0.0-20201028172056-a3136dde2354
 	github.com/hyperledger/fabric-sdk-go v1.0.0-alpha5
 	github.com/spf13/viper v1.7.0
-	gitlab.33.cn/link33/sidecar v0.0.0-20211028080238-67f4248825bb
+	gitlab.33.cn/link33/sidecar v0.0.0-20211105031147-f9e9df1e4f1f
 )
 
 replace (

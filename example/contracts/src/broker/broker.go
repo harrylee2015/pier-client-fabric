@@ -435,6 +435,7 @@ func (broker *Broker) invokeInterchain(stub shim.ChaincodeStubInterface, args []
 	var ccArgs [][]byte
 	ccArgs = append(ccArgs, []byte(callFunc.Func))
 	ccArgs = append(ccArgs, callFunc.Args...)
+	//chaincode Name, 方法参数, 所属通道
 	response := stub.InvokeChaincode(splitedCID[1], ccArgs, splitedCID[0])
 	if response.Status != shim.OK {
 		return errorResponse(fmt.Sprintf("invoke chaincode '%s' function %s err: %s", splitedCID[1], callFunc.Func, response.Message))
