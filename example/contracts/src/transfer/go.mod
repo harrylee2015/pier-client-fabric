@@ -1,4 +1,4 @@
-module gitlab.33cn/link33/sidecar-client-fabric/example/contracts/src/transfer
+module gitlab.33cn/link33/transfer
 
 go 1.13
 

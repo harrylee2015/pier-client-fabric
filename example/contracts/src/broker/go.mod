@@ -1,4 +1,4 @@
-module gitlab.33cn/link33/sidecar-client-fabric/example/contracts/src/broker
+module gitlab.33cn/link33/broker
 
 go 1.13
 
