@@ -58,14 +58,16 @@ func NewConsumer(configPath string, meta *ContractMeta, msgH MessageHandler, ctx
 
 func (c *Consumer) Start() error {
 	var err error
-
+	logger.Info("fabric  consumer start!")
 	ec, err := event.New(c.channelProvider, event.WithBlockEvents())
 	if err != nil {
+		logger.Error("failed to create fabcli, error: %v", err)
 		return fmt.Errorf("failed to create fabcli, error: %v", err)
 	}
 	c.eventClient = ec
 	registration, notifier, err := ec.RegisterChaincodeEvent(c.meta.CCID, c.meta.EventFilter)
 	if err != nil {
+		logger.Error("failed to register chaincode event, error: %v", err)
 		return fmt.Errorf("failed to register chaincode event, error: %v", err)
 	}
 	c.registration = registration
@@ -83,6 +85,7 @@ func (c *Consumer) Start() error {
 			}
 		}
 	}()
+	logger.Info("fabric  consumer start sucessfully!")
 	return nil
 }
 

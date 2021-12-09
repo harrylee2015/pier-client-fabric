@@ -26,7 +26,7 @@ import (
 
 var (
 	logger = hclog.New(&hclog.LoggerOptions{
-		Name:   "client",
+		Name:   "fabric-client",
 		Output: os.Stderr,
 		Level:  hclog.Trace,
 	})
@@ -79,13 +79,14 @@ func (c *Client) Kill() {
 func (c *Client) Exited() bool {
 	return true
 }
-
 func (c *Client) Bind(kern plugins.Kernel) {
 }
 func (c *Client) Initialize(configPath, appchainID string, extra []byte) error {
+	logger.Info("Fabric client starting initialize!")
 	eventC := make(chan *pb.IBTP)
 	config, err := UnmarshalConfig(configPath)
 	if err != nil {
+		logger.Error("unmarshal config for plugin :%w", err)
 		return fmt.Errorf("unmarshal config for plugin :%w", err)
 	}
 	fabricConfig := config.Fabric
@@ -98,9 +99,9 @@ func (c *Client) Initialize(configPath, appchainID string, extra []byte) error {
 	}
 
 	m := make(map[string]*pb.Interchain)
-	if err := json.Unmarshal(extra, &m); err != nil {
-		return fmt.Errorf("unmarshal extra for plugin :%w", err)
-	}
+	//if err := json.Unmarshal(extra, &m); err != nil {
+	//	return fmt.Errorf("unmarshal extra for plugin :%w", err)
+	//}
 	if m == nil {
 		m = make(map[string]*pb.Interchain)
 	}
@@ -126,13 +127,18 @@ func (c *Client) Initialize(configPath, appchainID string, extra []byte) error {
 	c.done = done
 	c.timeoutHeight = fabricConfig.TimeoutHeight
 	c.config = config
+	logger.Info("Fabric client initialize sucessfuly!")
 	return nil
 }
 
 func (c *Client) Start() error {
 	logger.Info("Fabric consumer started")
 	go c.polling()
-	return c.consumer.Start()
+	err:=c.consumer.Start()
+	if err !=nil {
+		logger.Error("fabric consumer start failed!",err)
+	}
+	return err
 }
 
 // polling event from broker
@@ -142,6 +148,7 @@ func (c *Client) polling() {
 		case <-c.ticker.C:
 			outMeta, err := c.GetOutMeta()
 			if err != nil {
+				logger.Error("get outmeta have a err:%s",err.Error())
 				continue
 			}
 			for servicePair, index := range outMeta {
@@ -153,8 +160,10 @@ func (c *Client) polling() {
 						"error", err.Error())
 					continue
 				}
+				//TODO 这里后面是否需要从DB中加载已经处理到了哪一步？还是直接从链上的callback响应处进行处理
 				meta, ok := c.serviceMeta[srcChainServiceID]
 				if !ok {
+
 					meta = &pb.Interchain{
 						ID:                      srcChainServiceID,
 						InterchainCounter:       make(map[string]uint64),
@@ -162,9 +171,15 @@ func (c *Client) polling() {
 						//SourceInterchainCounter: make(map[string]uint64),
 						SourceReceiptCounter:    make(map[string]uint64),
 					}
+					//FIXME 临时修复重启之后的index错乱问题
+					callBackMeta,err:=c.GetCallbackMeta()
+					if err !=nil {
+						logger.Error("get callback meta",
+							"error", err.Error())
+					}
+					meta.InterchainCounter[dstChainServiceID]=callBackMeta[servicePair]
 					c.serviceMeta[srcChainServiceID] = meta
 				}
-
 				for i := meta.InterchainCounter[dstChainServiceID] + 1; i <= index; i++ {
 					ibtp, err := c.GetOutMessage(servicePair, i)
 					if err != nil {
@@ -174,7 +189,7 @@ func (c *Client) polling() {
 							"error", err.Error())
 						continue
 					}
-
+					logger.Info("#######################get ibtp,From:",ibtp.From,ibtp.To)
 					c.eventC <- ibtp
 					meta.InterchainCounter[dstChainServiceID]++
 				}
@@ -259,6 +274,7 @@ func (c *Client) ID() string {
 }
 
 func (c *Client) GetIBTP() chan *pb.IBTP {
+	logger.Info("#########################GetIBTP")
 	return c.eventC
 }
 
@@ -284,13 +300,16 @@ func (c *Client) SubmitIBTP(ibtp *pb.IBTP) (*pb.SubmitIBTPResponse, error) {
 		srcChainServiceID string
 	)
 
-	if ibtp.Category() == pb.IBTP_REQUEST {
-		srcChainServiceID = ibtp.From
-		_, _, serviceID, err = parseChainServiceID(ibtp.To)
-	} else {
-		srcChainServiceID = ibtp.To
-		_, _, serviceID, err = parseChainServiceID(ibtp.From)
-	}
+
+	srcChainServiceID = ibtp.From
+	_, _, serviceID, err = parseChainServiceID(ibtp.To)
+	//if ibtp.Category() == pb.IBTP_REQUEST {
+	//	srcChainServiceID = ibtp.From
+	//	_, _, serviceID, err = parseChainServiceID(ibtp.To)
+	//} else {
+	//	srcChainServiceID = ibtp.From
+	//	_, _, serviceID, err = parseChainServiceID(ibtp.To)
+	//}
 
 	if ibtp.Category() == pb.IBTP_RESPONSE && content.Func == "" || ibtp.Type == pb.IBTP_ROLLBACK {
 		logger.Info("InvokeIndexUpdate", "ibtp", ibtp.ID())
